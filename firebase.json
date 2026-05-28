@@ -1,0 +1,39 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "xo-rymaz-wear",
+          "appId": "1:221298954934:android:c24c48dca6725ae6480c17",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "xo-rymaz-wear",
+          "configurations": {
+            "android": "1:221298954934:android:c24c48dca6725ae6480c17",
+            "ios": "1:221298954934:ios:4b88a6e25243f644480c17",
+            "macos": "1:221298954934:ios:4b88a6e25243f644480c17",
+            "web": "1:221298954934:web:f5ffdcb4509ef91a480c17",
+            "windows": "1:221298954934:web:e9f9f54832115549480c17"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

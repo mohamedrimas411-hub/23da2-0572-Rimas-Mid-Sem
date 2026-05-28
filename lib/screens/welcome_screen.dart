@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
+import '../core/localization_service.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final loc = LocalizationService();
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -15,7 +17,7 @@ class WelcomeScreen extends StatelessWidget {
             children: [
               const Spacer(),
               Container(
-                padding: const EdgeInsets.all(32),
+                padding: const EdgeInsets.all(4),
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
@@ -27,21 +29,27 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Icon(
-                  Icons.shopping_bag_outlined,
-                  size: 64,
-                  color: AppColors.primary,
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/images/launcher_icon.png',
+                    width: 120,
+                    height: 120,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               const SizedBox(height: 48),
               Text(
-                'XO RYMAZ Wear',
-                style: Theme.of(context).textTheme.displayLarge,
+                loc.translate('welcome_title'),
+                style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.5,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
               Text(
-                'Back To Signature Style!',
+                loc.translate('welcome_subtitle'),
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: AppColors.textSecondary,
                   letterSpacing: 1.2,
@@ -53,7 +61,7 @@ class WelcomeScreen extends StatelessWidget {
                 onPressed: () {
                   Navigator.pushReplacementNamed(context, '/login');
                 },
-                child: const Text('Let\'s get started'),
+                child: Text(loc.translate('lets_get_started'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 48),
             ],

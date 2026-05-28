@@ -1,11 +1,11 @@
 {
-    "name": "flutter_application_2",
-    "short_name": "flutter_application_2",
+    "name": "Zevix Clothing",
+    "short_name": "Zevix Clothing",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#000000",
+    "theme_color": "#000000",
+    "description": "Premium retail shopping experience.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

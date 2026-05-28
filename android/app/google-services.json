@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "221298954934",
+    "project_id": "xo-rymaz-wear",
+    "storage_bucket": "xo-rymaz-wear.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:221298954934:android:40f976bc4418d74e480c17",
+        "android_client_info": {
+          "package_name": "com.xorymaz.wear"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "221298954934-bv10u2lgd6shdf9vcjvjen5ad45r724v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.xorymaz.wear",
+            "certificate_hash": "2a842cd41c61cbd72266493264c9572a15c745c9"
+          }
+        },
+        {
+          "client_id": "221298954934-ou1bg16cf0a0oag6mf8nk4m8rea84tbs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-6qBm8tkYYYRIHRqslZNc7jXJ_g2xg6Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "221298954934-ou1bg16cf0a0oag6mf8nk4m8rea84tbs.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "221298954934-m2e3nkj3u80dddstob64e7i4li0uk2k8.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.flutterApplication2"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

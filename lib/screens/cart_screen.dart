@@ -1,80 +1,158 @@
 import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
+import '../core/services/auth_service.dart';
+import '../core/services/database_service.dart';
+import '../models/product_model.dart';
 import 'checkout_screen.dart';
+import '../core/localization_service.dart';
+import '../widgets/smart_image.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text('Cart', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 26, color: Colors.black)),
-        centerTitle: false,
-      ),
-      body: Stack(
-        children: [
-          Column(
+    final user = AuthService().currentUser;
+
+    if (user == null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 150), // Increased bottom padding for floating bar
-                  children: [
-                    _buildShippingAddress(),
-                    const SizedBox(height: 24),
-                    const Text('Items', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 16),
-                    _buildCartItem(
-                      'Alex Vando Mens Shirt',
-                      'Pink, Size M',
-                      17.00,
-                      'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildCartItem(
-                      'Fit Stretch Chino t-Shirt',
-                      'White, Size M',
-                      45.00,
-                      'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=400',
-                    ),
-                    const SizedBox(height: 32),
-                    const Text('From Your Wishlist', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 16),
-                    _buildWishlistItem(
-                      'Men\'s Hawaiian Shirt',
-                      17.00,
-                      'https://images.unsplash.com/photo-1523381235312-3a1647fa9917?w=400',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildWishlistItem(
-                      'JMIERR Men\'s Casual Shirt',
-                      20.00,
-                      'https://images.unsplash.com/photo-1594932224031-94f07cfe6f4b?w=400',
-                    ),
-                  ],
-                ),
+              const Icon(Icons.shopping_bag_outlined, size: 80, color: Colors.grey),
+              const SizedBox(height: 16),
+              Text(LocalizationService().translate('login_to_view_cart'), style: const TextStyle(fontSize: 18, color: Colors.grey)),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => Navigator.pushNamed(context, '/login'),
+                child: Text(LocalizationService().translate('login')),
               ),
             ],
           ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _buildCheckoutBar(context),
-          ),
-        ],
+        ),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(LocalizationService().translate('cart'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 26, color: Theme.of(context).colorScheme.onSurface)),
+        centerTitle: false,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
+          onPressed: () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacementNamed(context, '/home');
+            }
+          },
+        ),
+      ),
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: DatabaseService().getCart(user.uid),
+        builder: (context, cartSnapshot) {
+          if (cartSnapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          final cartItems = cartSnapshot.data ?? [];
+          double total = 0;
+          for (var item in cartItems) {
+            total += (item['product'] as Product).price * (item['quantity'] as int);
+          }
+
+          return Stack(
+            children: [
+              CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: _buildShippingAddress(context),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 16),
+                          Text(LocalizationService().translate('items'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 16),
+                          if (cartItems.isEmpty)
+                            Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(32.0),
+                                child: Text(LocalizationService().translate('no_items'), style: const TextStyle(color: Colors.grey)),
+                              ),
+                            )
+                          else
+                            Column(
+                              children: cartItems.map((item) {
+                                final product = item['product'] as Product;
+                                final quantity = item['quantity'] as int;
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: _buildCartItem(context, user.uid, product, quantity),
+                                );
+                              }).toList(),
+                            ),
+                          const SizedBox(height: 32),
+                          Text(LocalizationService().translate('from_your_wishlist'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
+                    ),
+                  ),
+                  StreamBuilder<List<Product>>(
+                    stream: DatabaseService().getWishlist(user.uid),
+                    builder: (context, wishlistSnapshot) {
+                      final wishlist = wishlistSnapshot.data ?? [];
+                      if (wishlist.isEmpty) {
+                        return SliverToBoxAdapter(
+                          child: Center(child: Text(LocalizationService().translate('nothing_in_wishlist'), style: const TextStyle(color: Colors.grey))),
+                        );
+                      }
+                      return SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) => Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: _buildWishlistItem(context, user.uid, wishlist[index]),
+                            ),
+                            childCount: wishlist.length,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 150)),
+                ],
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: _buildCheckoutBar(context, total),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildShippingAddress() {
+  Widget _buildShippingAddress(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10),
@@ -84,15 +162,15 @@ class CartScreen extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(12)),
             child: const Icon(Icons.location_on_outlined, color: AppColors.primary),
           ),
           const SizedBox(width: 16),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Shipping Address', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('Shipping Address', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
                 Text(
                   '26, Duong So 2, District 2, HCM City',
                   style: TextStyle(color: Colors.grey, fontSize: 12),
@@ -111,28 +189,21 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCartItem(String name, String details, double price, String imageUrl) {
+  Widget _buildCartItem(BuildContext context, String uid, Product product, int quantity) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              imageUrl,
+            child: SmartImage(
+              imageUrl: product.imageUrl,
               width: 90,
               height: 90,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                width: 90,
-                height: 90,
-                color: Colors.grey.shade200,
-                child: const Icon(Icons.broken_image, color: Colors.grey),
-              ),
             ),
           ),
           const SizedBox(width: 16),
@@ -143,29 +214,32 @@ class CartScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(child: Text(name, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
-                    const Icon(Icons.delete_outline, size: 18, color: Colors.grey),
+                    Expanded(child: Text(product.name, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface), overflow: TextOverflow.ellipsis)),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, size: 22, color: Colors.redAccent),
+                      onPressed: () => DatabaseService().removeFromCart(uid, product.id),
+                    ),
                   ],
                 ),
-                Text(details, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                Text(product.category, style: const TextStyle(color: Colors.grey, fontSize: 12)),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('\$${price.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    Text(LocalizationService().formatPrice(product.price * quantity), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                     Container(
                       decoration: BoxDecoration(
-                        color: AppColors.background,
+                        color: Theme.of(context).scaffoldBackgroundColor,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
                         children: [
-                          _buildQuantityBtn(Icons.remove),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 12),
-                            child: Text('1', style: TextStyle(fontWeight: FontWeight.bold)),
+                          _buildQuantityBtn(context, Icons.remove, () => DatabaseService().updateCartQuantity(uid, product.id, -1)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text('$quantity', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
                           ),
-                          _buildQuantityBtn(Icons.add),
+                          _buildQuantityBtn(context, Icons.add, () => DatabaseService().updateCartQuantity(uid, product.id, 1)),
                         ],
                       ),
                     ),
@@ -179,28 +253,21 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWishlistItem(String name, double price, String imageUrl) {
+  Widget _buildWishlistItem(BuildContext context, String uid, Product product) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              imageUrl,
+            child: SmartImage(
+              imageUrl: product.imageUrl,
               width: 80,
               height: 80,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                width: 80,
-                height: 80,
-                color: Colors.grey.shade200,
-                child: const Icon(Icons.broken_image, color: Colors.grey),
-              ),
             ),
           ),
           const SizedBox(width: 16),
@@ -208,16 +275,24 @@ class CartScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                Text(product.name, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface), overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Flexible(child: Text('\$${price.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primary), overflow: TextOverflow.ellipsis)),
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
-                      child: const Icon(Icons.add_shopping_cart, color: Colors.white, size: 16),
+                    Flexible(child: Text(LocalizationService().formatPrice(product.price), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primary), overflow: TextOverflow.ellipsis)),
+                    GestureDetector(
+                      onTap: () async {
+                        await DatabaseService().addToCart(uid, product);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(LocalizationService().translate('added_to_cart_success'))));
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                        child: const Icon(Icons.add_shopping_cart, color: Colors.white, size: 16),
+                      ),
                     ),
                   ],
                 ),
@@ -229,19 +304,22 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildQuantityBtn(IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(6),
-      decoration: const BoxDecoration(shape: BoxShape.circle),
-      child: Icon(icon, size: 14),
+  Widget _buildQuantityBtn(BuildContext context, IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: const BoxDecoration(shape: BoxShape.circle),
+        child: Icon(icon, size: 18, color: Theme.of(context).colorScheme.onSurface),
+      ),
     );
   }
 
-  Widget _buildCheckoutBar(BuildContext context) {
+  Widget _buildCheckoutBar(BuildContext context, double total) {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, -5)),
@@ -251,26 +329,26 @@ class CartScreen extends StatelessWidget {
         top: false,
         child: Row(
           children: [
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Total', style: TextStyle(color: Colors.grey, fontSize: 14)),
-                Text('\$62.00', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                Text(LocalizationService().translate('total'), style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                Text(LocalizationService().formatPrice(total), style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
               ],
             ),
-            const SizedBox(width: 16), // Reduced spacing slightly
+            const SizedBox(width: 16),
             Expanded(
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: total > 0 ? () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const CheckoutScreen()));
-                },
+                } : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   minimumSize: const Size(double.infinity, 60),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 ),
-                child: const Text('Checkout', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                child: Text(LocalizationService().translate('checkout'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
